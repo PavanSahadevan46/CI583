@@ -11,7 +11,14 @@ package ci583.receiver;
 import java.util.ArrayList;
 import java.util.List;
 
+// ADDED IMPORTS
+import java.util.PriorityQueue;
+import java.util.Comparator;
+
+
 public class PReceiver extends ModRegReceiver {
+
+    private PriorityQueue<ModuleRegister> queue;
 
     /**
      * Constructs a new Priority Scheduler. The constructor needs to call the constructor of the
@@ -24,11 +31,20 @@ public class PReceiver extends ModRegReceiver {
      */
     public PReceiver(long quantum) {
       super(quantum);
+      Comparator<ModuleRegister> comparePrio = (p1,p2)->{
+          if(p1.getPriority() == p2.getPriority()){
+              return -1;
+          }else{
+              return Integer.compare(p1.getPriority(), p2.getPriority());
+          }
+      };
+      this.queue =  new PriorityQueue<>(comparePrio);
     }
 
     @Override
     public void enqueue( ModuleRegister m) {
-        throw new UnsupportedOperationException("Method not implemented");
+        queue.add(m);
+        System.out.println("b ruh please work im sick of java: " + m);
     }
 
     /**
@@ -47,8 +63,40 @@ public class PReceiver extends ModRegReceiver {
      */
     @Override
     public List<ModuleRegister> startRegistration() {
-        throw new UnsupportedOperationException("Method not implemented");
-        //ArrayList<ModuleRegister>orderedResults = new ArrayList<>();
-        //return orderedResults;
+        ArrayList<ModuleRegister> results = new ArrayList<>();
+
+        while (!queue.isEmpty()) {
+            ModuleRegister process = queue.poll();
+            ModuleRegister.State state = process.getState();
+
+            switch (state) {
+                case NEW:
+                    process.start();
+                    sleepForQuantum();
+                    queue.add(process);
+                    break;
+                case TERMINATED:
+                    results.add(process);
+                    break;
+                default:
+                    process.interrupt();
+                    sleepForQuantum();
+                    queue.add(process);
+                    break;
+            }
+        }
+
+        return results;
+    }
+
+    /**
+     * Sleep for a duration defined by QUANTUM.
+     */
+    private void sleepForQuantum() {
+        try {
+            Thread.sleep(QUANTUM);
+        } catch (InterruptedException e) {
+            System.err.println("Error: Interrupted during sleep");
+        }
     }
 }
