@@ -44,7 +44,6 @@ public class PReceiver extends ModRegReceiver {
     @Override
     public void enqueue( ModuleRegister m) {
         queue.add(m);
-        System.out.println("b ruh please work im sick of java: " + m);
     }
 
     /**
