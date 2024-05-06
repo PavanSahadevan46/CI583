@@ -88,9 +88,3 @@ public class RRReceiver extends ModRegReceiver {
     }
 }
 
-
-//    public List<ModuleRegister> startRegistration() {
-//        throw new UnsupportedOperationException("Method not implemented");
-//        //ArrayList<ModuleRegister> results = new ArrayList<>();
-//        //return results;
-//    }

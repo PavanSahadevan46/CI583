@@ -58,6 +58,7 @@ public class ModuleRegister extends Thread {
      * The run method sleeps repeatedly until the 'work' is done.
      */
     public void run() {
+        timeStarted = System.currentTimeMillis();
         while(workDone() < work) {
             try {
                 Thread.sleep(10);
