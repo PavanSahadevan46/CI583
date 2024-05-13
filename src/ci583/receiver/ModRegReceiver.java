@@ -15,13 +15,15 @@ import java.util.logging.Logger;
 
 public abstract class ModRegReceiver {
 
-    /** The time quantum for which each module registration process will run before being
+    /**
+     * The time quantum for which each module registration process will run before being
      * put back to sleep.
      */
     protected static long QUANTUM;
 
     /**
      * Creates a Module registration receiver with the given time quantum.
+     *
      * @param quantum
      */
     public ModRegReceiver(long quantum) {
@@ -30,13 +32,26 @@ public abstract class ModRegReceiver {
 
     /**
      * Add a process to  the queue of precesses, for registering a module to a student .
+     *
      * @param m
      */
     public abstract void enqueue(ModuleRegister m);
 
     /**
      * Start registering modules.
+     *
      * @return
      */
     public abstract List<ModuleRegister> startRegistration();
+
+
+    // method to stop the thgread executing for QUANTUM milliseconds
+    public void pauseForQuantum() {
+        try {
+            Thread.sleep(QUANTUM);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+
+        }
+    }
 }

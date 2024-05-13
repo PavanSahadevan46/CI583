@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class RRReceiver extends ModRegReceiver {
+
+    // a list to hold the order of processes
     private List<ModuleRegister> queue;
 
     /**
@@ -22,6 +24,7 @@ public class RRReceiver extends ModRegReceiver {
      */
     public RRReceiver(long quantum) {
         super(quantum);
+        // initalize the queue
         queue = new ArrayList<>();
     }
 
@@ -33,6 +36,7 @@ public class RRReceiver extends ModRegReceiver {
     public void enqueue(ModuleRegister m) {
         queue.add(m);
     }
+
 
     /**
      * Schedule the processes, start registration. This method needs to:
@@ -48,26 +52,53 @@ public class RRReceiver extends ModRegReceiver {
      *  + when the queue is empty, return the list of completed processes.
      * @return
      */
+
+
+    /**
+     * schedules the processes based on the round-robin algorithm
+     * this method:
+     * - creates an empty list for completed processes
+     * - while the queue is not empty:
+     *   - retrieves the next process from the head of the queue
+     *   - based on the process state:
+     *     - if new: starts the process, sleeps for quantum then adds it to the end of the queue
+     *     - if terminated: adds the process to the results list
+     *     - otherwise: interrupts the process, sleeps for quantum then adds it to the end of the queue
+     * - returns the list of completed processes when the queue is empty
+     *
+     * @return a list of completed ModuleRegister processes
+     */
+
+
     @Override
     public List<ModuleRegister> startRegistration() {
+
+        // create list to hold completed processes
         ArrayList<ModuleRegister> results = new ArrayList<>();
 
+        // while the queue has processes
         while (!queue.isEmpty()) {
+            // remove a process from the queue and get its state
             ModuleRegister process = queue.remove(0);
             ModuleRegister.State state = process.getState();
 
+            // switch between the state of the process
             switch (state) {
                 case NEW:
+                    // start process, sleep for quantum and add it to the back of the queue
                     process.start();
-                    sleepForQuantum();
+                    pauseForQuantum();
                     queue.add(process);
                     break;
                 case TERMINATED:
+                    // add it to the completed queue
                     results.add(process);
                     break;
                 default:
+                    // if process is anything but new or terminated interrupt the process
+                    // sleep for quantum and add it to the back of the queue
                     process.interrupt();
-                    sleepForQuantum();
+                    pauseForQuantum();
                     queue.add(process);
                     break;
             }
@@ -76,15 +107,5 @@ public class RRReceiver extends ModRegReceiver {
         return results;
     }
 
-    /**
-     * Sleep for a duration defined by QUANTUM.
-     */
-    private void sleepForQuantum() {
-        try {
-            Thread.sleep(QUANTUM);
-        } catch (InterruptedException e) {
-            System.err.println("Error: Interrupted during sleep");
-        }
-    }
 }
 

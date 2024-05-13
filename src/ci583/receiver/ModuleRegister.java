@@ -58,7 +58,7 @@ public class ModuleRegister extends Thread {
      * The run method sleeps repeatedly until the 'work' is done.
      */
     public void run() {
-        timeStarted = System.currentTimeMillis();
+        timeStarted = System.currentTimeMillis(); // moved to the run method to allow the time to be calculated BEFORE the process is run to sync up properly
         while(workDone() < work) {
             try {
                 Thread.sleep(10);

@@ -11,13 +11,13 @@ package ci583.receiver;
 import java.util.ArrayList;
 import java.util.List;
 
-// ADDED IMPORTS
 import java.util.PriorityQueue;
 import java.util.Comparator;
 
 
 public class PReceiver extends ModRegReceiver {
 
+    // priority queue to hold processes
     private PriorityQueue<ModuleRegister> queue;
 
     /**
@@ -27,59 +27,93 @@ public class PReceiver extends ModRegReceiver {
      * the same priority. This is so that when a process is added to the queue it ends up behind any
      * other processes with the same priority. If the two priorities are not equal, the Comparator should
      * return -1 if p1 is less than p2, and 1 if p1 is greater than p2.
+     *
      * @param quantum
      */
     public PReceiver(long quantum) {
-      super(quantum);
-      Comparator<ModuleRegister> comparePrio = (p1,p2)->{
-          if(p1.getPriority() == p2.getPriority()){
-              return -1;
-          }else{
-              return Integer.compare(p1.getPriority(), p2.getPriority());
-          }
-      };
-      this.queue =  new PriorityQueue<>(comparePrio);
+        super(quantum);
+
+        // comparator to sort module register objects by priority
+        // if two processes have the same priority, return -1 to keep them in the existing order
+        // otherwise, return -1 or 1 based on priority comparison
+
+        Comparator<ModuleRegister> comparePrio = (p1, p2) -> {
+            if (p1.getPriority() == p2.getPriority()) {
+                return -1; // same priority
+            } else {
+//                System.out.println("prio" + Integer.compare(p1.getPriority(), p2.getPriority()));
+                return  Integer.compare(p1.getPriority(), p2.getPriority());
+
+            }
+        };
+
+        // create new priority queue with comparator
+        this.queue = new PriorityQueue<>(comparePrio);
     }
 
+    /**
+     * Add a ModuleRegister process to the queue, to be scheduled for registration
+     */
     @Override
-    public void enqueue( ModuleRegister m) {
-        queue.add(m);
+    public void enqueue(ModuleRegister m) {
+        queue.offer(m);
     }
+
+
 
     /**
      * Schedule the processes. This method needs to:
      * + create an empty list which will hold the completed processes. This will be the
-     *   return value of the method.
+     * return value of the method.
      * + while the queue is not empty:
-     *   - use the priority queue's `poll' method to take the next process from the queue and get its State.
-     *   - if the state is NEW, start the process then sleep for QUANTUM milliseconds
-     *     then put the process at the back of the queue.
-     *   - if the state is TERMINATED, add it to the results list.
-     *   - if the state is anything else then interrupt the process to wake it up then
-     *     sleep for QUANTUM milliseconds, then put the process at the back of the queue.
-     *  + when the queue is empty, return the list of completed processes.
+     * - use the priority queue's `poll' method to take the next process from the queue and get its State.
+     * - if the state is NEW, start the process then sleep for QUANTUM milliseconds
+     * then put the process at the back of the queue.
+     * - if the state is TERMINATED, add it to the results list.
+     * - if the state is anything else then interrupt the process to wake it up then
+     * sleep for QUANTUM milliseconds, then put the process at the back of the queue.
+     * + when the queue is empty, return the list of completed processes.
+     *
      * @return
+     */
+
+
+
+    /**
+     * schedule the processes for registration based on their priority
+     * method returns a list of completed processes
+     *
+     * @return list of completed processes
      */
     @Override
     public List<ModuleRegister> startRegistration() {
+
+        // create a  list to hold completed processes
         ArrayList<ModuleRegister> results = new ArrayList<>();
 
+        // while there are processes in the queue
         while (!queue.isEmpty()) {
+            // poll the next process and get its state
             ModuleRegister process = queue.poll();
             ModuleRegister.State state = process.getState();
 
+            // switch between the state of the process
             switch (state) {
                 case NEW:
+                    // start process, sleep for quantum and add it to the back of the queue
                     process.start();
-                    sleepForQuantum();
+                    pauseForQuantum();
                     queue.add(process);
                     break;
                 case TERMINATED:
+                    // add it to the completed queue
                     results.add(process);
                     break;
                 default:
+                    // if process is anything but new or terminated interrupt the process
+                    // sleep for quantum and add it to the back of the queue
                     process.interrupt();
-                    sleepForQuantum();
+                    pauseForQuantum();
                     queue.add(process);
                     break;
             }
@@ -88,14 +122,4 @@ public class PReceiver extends ModRegReceiver {
         return results;
     }
 
-    /**
-     * Sleep for a duration defined by QUANTUM.
-     */
-    private void sleepForQuantum() {
-        try {
-            Thread.sleep(QUANTUM);
-        } catch (InterruptedException e) {
-            System.err.println("Error: Interrupted during sleep");
-        }
-    }
 }

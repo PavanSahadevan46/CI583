@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MLFQReceiver extends ModRegReceiver {
-    private final List<ModuleRegister> youngList;
-    private final List<ModuleRegister> oldList;
+    private final List<ModuleRegister> youngList; // young processes list
+    private final List<ModuleRegister> oldList; // old processes list
 
     /**
      * Constructs a multi-level feedback queue receiver.
@@ -15,8 +15,8 @@ public class MLFQReceiver extends ModRegReceiver {
      */
     public MLFQReceiver(long quantum) {
         super(quantum);
-        youngList = new ArrayList<>();
-        oldList = new ArrayList<>();
+        youngList = new ArrayList<>();  // initialize the young list
+        oldList = new ArrayList<>();    // initialize the old list
     }
 
     /**
@@ -26,7 +26,7 @@ public class MLFQReceiver extends ModRegReceiver {
      */
     @Override
     public void enqueue(ModuleRegister m) {
-        youngList.add(m);
+        youngList.add(m); //add modules to the young queue first
     }
 
     /**
@@ -47,57 +47,81 @@ public class MLFQReceiver extends ModRegReceiver {
      *
      * @return
      */
+
+
+
+
+
+    /**
+     * schedule the module registration processes based on multi-level feedback queue logic
+     * returns a list of completed processes
+     * the method alternates between two queues:
+     *  Young queue: if a process is new  it starts and moves to the old queue after the quantum expires
+     *  Old queue: if the young queue is empty old queue processes move back to the young queue after the quantum
+     *
+     * @return  list of completed processes
+     */
     @Override
     public List<ModuleRegister> startRegistration() {
+        //list to store the completed processes
         List<ModuleRegister> completedProcesses = new ArrayList<>();
 
+        // while both queues aren't empty perform module registration process
         while (!youngList.isEmpty() || !oldList.isEmpty()) {
-            List<ModuleRegister> activeList;
-            if (!youngList.isEmpty()) {
-                activeList = youngList;
-            } else {
-                activeList = oldList;
-            }
-            ModuleRegister process = activeList.remove(0);
-            ModuleRegister.State state = process.getState();
 
-            switch (state) {
-                case NEW:
-                    process.start();
-                    if (activeList == youngList) {
-                        oldList.add(process);
-                    } else {
-                        youngList.add(process);
-                    }
-                    sleepForQuantum();
-                    break;
+                // activeList is used as a "flag" to allow for clear transitions of processes between queues to prevent starvation
+                List<ModuleRegister> activeList;
 
-                case TERMINATED:
-                    completedProcesses.add(process);
-                    break;
+                // using the activeList as a flag determine which list to use depending on which list is empty
+                if (!youngList.isEmpty()) {
+                    activeList = youngList;
+                } else {
+                    activeList = oldList;
+                }
 
-                default:
-                    process.interrupt();
-                    // Add to the opposite list
-                    if (activeList == youngList) {
-                        oldList.add(process);
-                    } else {
-                        youngList.add(process);
-                    }
-                    sleepForQuantum();
-                    break;
-            }
+                // remove the first process in the selected active queue
+                ModuleRegister process = activeList.remove(0);
+
+                // take the process and get its state
+                ModuleRegister.State state = process.getState();
+
+                // perform action based on the process's state
+                switch (state) {
+                    case NEW:
+                        process.start();
+                        // move the process to the opposite queue after the quantum time expires
+                        // if it was in the young queue move it to the old queue
+                        // otherwise  if it was in the old queue move back to the young queue
+                        // this is done to ensure the process does not stay in one list too long
+                        if (activeList == youngList) {
+                            oldList.add(process); // move from young to old
+                        } else {
+                            youngList.add(process);// move from old to young
+                        }
+
+                        pauseForQuantum();
+                        break;
+
+                    case TERMINATED:
+                        // add the process to the completed list if terminated
+                        completedProcesses.add(process);
+                        break;
+
+                    default:
+                        // if the state of the process is anything else but above 2 cases interrupt it
+                        process.interrupt();
+                        // add to the opposite list same as the new case
+                        if (activeList == youngList) {
+                            oldList.add(process);
+                        } else {
+                            youngList.add(process);
+                        }
+                        pauseForQuantum();
+                        break;
+                }
         }
-
         return completedProcesses;
     }
 
-    private void sleepForQuantum() {
-        try {
-            Thread.sleep(QUANTUM);
-        } catch (InterruptedException e) {
-            System.err.println(e);
-        }
-    }
-}
 
+}
