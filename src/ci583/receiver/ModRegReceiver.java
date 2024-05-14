@@ -50,8 +50,7 @@ public abstract class ModRegReceiver {
         try {
             Thread.sleep(QUANTUM);
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-
+            System.err.println(e);
         }
     }
 }
